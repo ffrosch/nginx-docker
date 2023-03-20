@@ -1,0 +1,20 @@
+# https://docs.docker.com/compose/compose-file/compose-file-v3/
+
+version: "3.8"
+services:
+  proxied-service:
+    image: ${CONTAINER_IMAGE}
+    container_name: ${CONTAINER_NAME}
+    environment:
+      - VIRTUAL_HOST=${VIRTUAL_HOST}
+      - VIRTUAL_PORT=${EXPOSE_PORT}
+    expose:
+      - "${EXPOSE_PORT}"
+    networks:
+      - nginx-automatic-proxy-network
+
+networks:
+  nginx-automatic-proxy-network:
+    name: nginx-proxy
+    # use pre-existing network, do not create a new one
+    external: true
