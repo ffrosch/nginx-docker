@@ -5,9 +5,14 @@ services:
   proxied-service:
     image: ${CONTAINER_IMAGE}
     container_name: ${CONTAINER_NAME}
+    restart: always
     environment:
+      - VIRTUAL_PORT=${VIRTUAL_PORT}
       - VIRTUAL_HOST=${VIRTUAL_HOST}
-      - VIRTUAL_PORT=${EXPOSE_PORT}
+      - LETSENCRYPT_HOST=${LETSENCRYPT_HOST}
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
+      - LETSENCRYPT_TEST=${LETSENCRYPT_TEST}
+      - DEBUG=${LETSENCRYPT_DEBUG}
     expose:
       - "${EXPOSE_PORT}"
     networks:
@@ -16,5 +21,5 @@ services:
 networks:
   nginx-automatic-proxy-network:
     name: nginx-proxy
-    # use pre-existing network, do not create a new one
+    # use pre-existing network from other docker-compose.yml
     external: true
