@@ -15,21 +15,9 @@ services:
       - DEBUG=${LETSENCRYPT_DEBUG}
     expose:
       - "${EXPOSE_PORT}"
-    networks:
-      - nginx-automatic-proxy-network
-    volumes:
-      # These are provided for easy mounting of custom config files
-      - conf:/conf.d
-      - vhost:/vhost.d
-
-volumes:
-  conf:
-    external: true
-  vhost:
-    external: true
 
 networks:
-  nginx-automatic-proxy-network:
+  default:
     name: nginx-proxy
     # use pre-existing network from other docker-compose.yml
     external: true

@@ -11,6 +11,10 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    tmpfs:
+      - /var/run
+      - /var/cache
+      - /var/log/nginx
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - html:/usr/share/nginx/html
@@ -35,10 +39,15 @@ services:
       - vhost:/etc/nginx/vhost.d
 volumes:
   acme:
+    name: acme
   certs:
+    name: certs
   conf:
+    name: conf
   html:
+    name: html
   vhost:
+    name: vhost
 
 networks:
   default:

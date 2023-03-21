@@ -6,6 +6,12 @@ nginx-proxy sets up a container running nginx and [docker-gen](https://github.co
 
 See [Automated Nginx Reverse Proxy for Docker](http://jasonwilder.com/blog/2014/03/25/automated-nginx-reverse-proxy-for-docker/) for why you might want to use this.
 
+## Overview
+
+Projects using **nginx-docker**:
+
+- [mattermost-docker](https://github.com/ffrosch/mattermost-docker)
+
 ## Install
 
 ```shell
@@ -94,7 +100,7 @@ volumes:
 
 #### Modifying template
 
-If nothing else works, modifying `nginx.tmpl` to include certain things like a customized upstream block could be a solution.
+If nothing else works, modifying `nginx.tmpl` to include certain things like a customized upstream block could be a solution. It is likely that this would require to setup the `nginx-proxy` with seperate containers (see original repo).
 
 #### Proxy-wide configuration
 
