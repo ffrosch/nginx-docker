@@ -17,6 +17,16 @@ services:
       - "${EXPOSE_PORT}"
     networks:
       - nginx-automatic-proxy-network
+    volumes:
+      # These are provided for easy mounting of custom config files
+      - conf:/conf.d
+      - vhost:/vhost.d
+
+volumes:
+  conf:
+    external: true
+  vhost:
+    external: true
 
 networks:
   nginx-automatic-proxy-network:
