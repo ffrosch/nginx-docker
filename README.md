@@ -1,14 +1,13 @@
 # Nginx Docker
 
-A fork of the official nginx-deployment deployment solution with automatically generated `conf` files for other Docker containers. For more detailed instructions refer to the [original repo](https://github.com/nginx-proxy/nginx-proxy)
+A simplified automated reverse proxy with SSL support for docker containers.
 
-nginx-proxy sets up a container running nginx and [docker-gen](https://github.com/nginx-proxy/docker-gen). docker-gen generates reverse proxy configs for nginx and reloads nginx when containers are started and stopped.
+A fork of [nginx-proxy](https://github.com/nginx-proxy/nginx-proxy) integrating [acme-companion](https://github.com/nginx-proxy/acme-companion) and simplifying the configuration of proxied containers.
 
-See [Automated Nginx Reverse Proxy for Docker](http://jasonwilder.com/blog/2014/03/25/automated-nginx-reverse-proxy-for-docker/) for why you might want to use this.
+- [Why you might want to use it](http://jasonwilder.com/blog/2014/03/25/automated-nginx-reverse-proxy-for-docker/)
+- detailed documentation at [nginx-proxy](https://github.com/nginx-proxy/nginx-proxy)
 
-## Overview
-
-Projects using **nginx-docker**:
+**Projects using it**
 
 - [mattermost-docker](https://github.com/ffrosch/mattermost-docker)
 
@@ -21,17 +20,16 @@ cd nginx-docker
 
 ## Usage
 
-To run it with docker compose:
+Run it:
 
 ```console
 docker compose up -d
 ```
 
-### Test general functionality
-
-Change to subdirectory `./vhost-templates` and run:
+Verify success:
 
 ```console
+cd ./vhost-templates
 docker compose up -d
 curl -H "Host: whoami.local" localhost
 ```
@@ -42,7 +40,7 @@ Example output:
 I'm 5b129ab83266
 ```
 
-## Adding containers
+## Add service | container
 
 Any docker container being proxied needs to copy `.env` and `docker-compose.yml` from `./vhost-templates`.
 
@@ -53,84 +51,65 @@ It is absolutely necessary to adjust these variables within the `.env`file:
 - `CONTAINER_IMAGE`
 - `CONTAINER_NAME`
 - `LETSENCRYPT_EMAIL`: your email address
-- `LETSENCRYPT_TEST`: set to `false` before moving from testing to production
+- `LETSENCRYPT_TEST`: set to `false` **before moving from testing to production**
 
 The Nginx Proxy will forward all requests on a domain to the matching `VIRTUAL_HOST`. For example `curl -H "http://subdomain.yourdomain.com"` would be forwarded to the container with `VIRTUAL_HOST=subdomain.yourdomain.com`. This will only work if a service is running behind the exposed port of that container!
 
 ### SSL
 
-When using wildcard SSL certificates like `*.my-domain.com` all subdomains will also we available with SSL.
-
 [acme-companion](https://github.com/nginx-proxy/acme-companion) is integrated into the `docker-compose.yml` and the `vhost-templates` for automated SSL certificate generation and renewal.
 
 **Note**: The `acme-companion` for SSL is set to use [test certificates](https://github.com/nginx-proxy/acme-companion/blob/main/docs/Let's-Encrypt-and-ACME.md#test-certificates) from the Let's Encrypt staging environment per default. This is a safer choice due to [rate-limits on production certificates](https://letsencrypt.org/docs/rate-limits/). When everything is tested and working it has to be set to production settings.
 
-### Custom Configuration (per container)
+## Configure service | container
 
-If you need to configure Nginx beyond what is possible using environment variables, you can provide custom configuration files on either a proxy-wide or per-`VIRTUAL_HOST` basis.
+Configuration beyond environment variables.
 
 Read [Per-VIRTUAL_HOST examples](https://github.com/nginx-proxy/nginx-proxy/discussions/1643) and [this summay](https://github.com/nginx-proxy/nginx-proxy/issues/1398#issuecomment-587717134) to get a sense on how this works.
 
-#### Mounting file into volume
+### Mount config file on container startup
 
-Configuration files specific to a `VIRTUAL_HOST` can be mounted into an existing volume. This way, everytime the container runs, it's specific configuration files are available.
+Configuration files specific to a `VIRTUAL_HOST` can be mounted into an existing volume named volume when the **Virtual Host** container is started.
 
-TODO: check whether `nginx-proxy` or `acme-companion` modify any of these custom files in place. Although this shouldn't be a problem, because in this case the source file will be altered.
+This requires a **Named Volume** configured as `type: bind` and only works on **Linux** because it requires to set `propagation: rshared` which is not supported on other host systems.
 
-```yml
-# docker-compose.yml
-version: "3.8"
-services:
-  virtual-host-container:
-    image: your-image
-    volumes:
-      - conf:/conf.d
-      - vhost:/vhost.d
-      - ./myconf.conf:/conf.d/myconf.conf
-      - ./vhost.conf:/vhost.d/app.example.com
-      - ./vhost.conf:/vhost.d/www.app.example.com
-      - ./vhost_location.conf:/vhost.d/app.example.com_location
+### Global configuration
 
-volumes:
-  conf:
-    external: true
-  vhost:
-    external: true
-```
+Add `*.conf` files at `/etc/nginx/conf.d`. The name should preferably come alphabetically after `default.conf` to make sure that `default.conf` is loaded first.
 
-#### Modifying template
-
-If nothing else works, modifying `nginx.tmpl` to include certain things like a customized upstream block could be a solution. It is likely that this would require to setup the `nginx-proxy` with seperate containers (see original repo).
-
-#### Proxy-wide configuration
-
-To add settings on a proxy-wide basis, add your configuration file under `/etc/nginx/conf.d` using a name ending in `.conf`. The name should preferably come alphabetically after `default.conf` to make sure that `default.conf` is loaded first.
-
-This method is for example useful for custom `upstream` directives!
-
-#### VIRTUAL_HOST General configuration
-
-If you want to use custom nginx configuration for a specific container/virtual-host, you can copy the configuration file to the `vhost` volume. The file has to have the **exact same name** as the `VIRTUAL_HOST`. For example, if you have a virtual host named `app.example.com`, you could provide a custom configuration for that host at `/path/to/vhost.d/app.example.com`.
+This can be used to define different `proxy_cache_paths`.
 
 ```shell
-# This should work
-docker cp custom.conf nginx-proxy:/etc/nginx/vhost.d/<virtual-host-name>
+docker cp custom.conf nginx-proxy:/etc/nginx/vhost.d/servicename_proxy.conf
 ```
 
-If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=example.com,www.example.com`), the virtual host configuration file must exist for each hostname. If you would like to use the same configuration for multiple virtual host names, you can use a symlink:
+### VIRTUAL_HOST general configuration
+
+Add a single file with `server` blocks for `VIRTUAL_HOST` at `/path/to/vhost.d/${VIRTUAL_HOST}`.
+
+If you are using multiple hostnames for a single container (e.g. `VIRTUAL_HOST=example.com,www.example.com`), the virtual host configuration file must exist for each hostname.
+
+If you would like to use the same configuration for multiple virtual host names, you can use a symlink:
 
 ```shell
 ln -s /path/to/vhost.d/www.example.com /path/to/vhost.d/example.com
 ```
 
-#### VIRTUAL_HOST Location configuration
+### VIRTUAL_HOST location configuration
 
-To add settings to the "location" block on a per-`VIRTUAL_HOST` basis, add your configuration file under `/etc/nginx/vhost.d` just like the previous section except with the suffix `_location` like so: `/path/to/vhost.d/app.example.com_location`.
-This strategy will **augment** any generated `location` blocks. If you want to completely override the `location` block, use `_location_override` as suffix.
+Add a single file with `location` blocks for `VIRTUAL_HOST`.
 
-If you are using multiple hostnames for the same container use the symlink strategy as described in the **General configuration**.
+If you are using **multiple hostnames** for the same container use the symlink strategy as described above.
 
-### Testing
+**Augment**
+
+File path: `/etc/nginx/vhost.d/${VIRTUAL_HOST}_location`.
+
+**Override**
+
+File path: `/etc/nginx/vhost.d/${VIRTUAL_HOST}_location_override`.
+
+## Testing
 
 See [dataminelab/docker-jenkins | local testing](https://github.com/dataminelab/docker-jenkins-nginx-letsencrypt#local-testing) and [ngrok.com](https://ngrok.com/).
 
