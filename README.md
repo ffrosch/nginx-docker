@@ -16,7 +16,10 @@ A fork of [nginx-proxy](https://github.com/nginx-proxy/nginx-proxy) integrating 
 ```shell
 git clone https://github.com/ffrosch/nginx-docker ./nginx-docker
 cd nginx-docker
+cp env.example .env
 ```
+
+Albeit **optional**, it is **recommended** to provide a valid default email address through the `DEFAULT_EMAIL` environment variable, so that Let's Encrypt can warn you about expiring certificates and allow you to recover your account.
 
 ## Usage
 
