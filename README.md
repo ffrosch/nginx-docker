@@ -122,6 +122,41 @@ To display information about existing certificates, use the following command:
 docker exec nginx-proxy-acme-companion /app/cert_status
 ```
 
+### Localhost NGROK
+
+A neat way to test a proxied container locally with https.
+
+Run **ngrok** as a docker container:
+
+```shell
+docker run --net=host -it -e NGROK_AUTHTOKEN=<your-token> ngrok/ngrok:latest http 80
+```
+
+From the **ngrok** output copy the domain-part of the `Forwarding` address (exclude `https://`). Keep **ngrok** running. Start a new shell, assign the `DOMAIN` variable and run the container:
+
+```shell
+export VIRTUAL_HOST=<ngrok-domain>; docker compose up -d
+```
+
+After a moment you will be able to access your service with `https` over the **ngrok**-address!
+
+For testing `https` it would be good to connect locally and not via `ngrok`.
+
+```shell
+# Stop normal DNS-Server
+sudo systemctl stop systemd-resolved
+
+# Listen at standard address for normal DNS-Server
+# use Google DNS (8.8.8.8)
+# listen locally on all subdomains of localhost
+# NOTE: DO NOT use the domain "local", it does not work (reserved or something)
+sudo dnsmasq --listen-address 127.0.0.53 --server=8.8.8.8 --no-daemon --address=/*.localhost/127.0.0.1
+
+# Restart normal DNS-Server
+sudo systemctl stop systemd-resolved
+sudo systemctl start systemd-resolved
+```
+
 ## Update
 
 Add the original repo as an upstream repo
@@ -151,7 +186,7 @@ git push
 If you can't access your `VIRTUAL_HOST`, make sure the container with the virtual host address is running and inspect the generated nginx configuration:
 
 ```shell
-docker exec <nginx-proxy-instance> nginx -T
+docker exec nginx-proxy nginx -T
 ```
 
 Pay attention to the upstream definition blocks, which should look like this:
