@@ -15,7 +15,7 @@ services:
       - "443:443"
     tmpfs:
       - /var/run
-      - /var/cache
+      - /var/cache/nginx
       - /var/log/nginx
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
@@ -25,13 +25,14 @@ services:
       - vhost:/etc/nginx/vhost.d
 
   letsencrypt:
-    container_name: nginx-proxy-acme-companion
+    container_name: nginx-proxy-acme
     image: nginxproxy/acme-companion:latest
     restart: always
     depends_on:
       - nginx-proxy
     environment:
       - NGINX_PROXY_CONTAINER=nginx-proxy
+      - DEBUG
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - html:/usr/share/nginx/html
